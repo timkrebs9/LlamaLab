@@ -7,10 +7,11 @@ from tqdm import tqdm
 import PyPDF2
 from openai import OpenAI
 
+from app.settings import settings
 # Initialize the OpenAI client
 client = OpenAI(
-    base_url='http://localhost:11434/v1',
-    api_key='ollama'
+    base_url=settings.OPENAI_BASE_URL,
+    api_key=settings.OPENAI_API_KEY
 )
 
 # Template for generating JSON
@@ -56,12 +57,12 @@ def fix_json(crptd_json: str) -> dict:
     ]
 
     response = client.chat.completions.create(
-        model="llama3.1",
+        model=settings.LLM_TYPE,
         messages=messages,
-        max_tokens=2048,
+        max_tokens=settings.LLM_MAX_RESPONSE_TOKENS,
         n=1,
         stop=None,
-        temperature=1,
+        temperature=settings.LLM_TEMPERATURE,
     )
 
     response_text = response.choices[0].message.content.strip()
@@ -92,21 +93,24 @@ def generate_questions_answers(text_chunk: str) -> dict:
     ]
 
     response = client.chat.completions.create(
-        model="llama3.1",
+        model=settings.LLM_TYPE,
         messages=messages,
-        max_tokens=2048,
+        max_tokens=settings.LLM_MAX_RESPONSE_TOKENS,
         n=1,
         stop=None,
-        temperature=0.7,
+        temperature=settings.LLM_TEMPERATURE+0.2,
     )
 
     response_text = response.choices[0].message.content.strip()
 
     try:
         json_data = json.loads(response_text)
-        print(json_data)
+        if settings.DEBUG:
+                print(json_data)
         return json_data
     except json.JSONDecodeError:
+        if settings.DEBUG:
+            print("Error: Response is not valid JSON.... Trying to fix the JSON.")
         print("Error: Response is not valid JSON.... Trying to fix the JSON.")
         return []
 
